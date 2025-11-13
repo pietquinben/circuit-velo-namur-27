@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#667eea">
+    <meta name="description" content="Circuit vélo électrique de 23km entre Namur et Profondeville. Découvrez la citadelle, les fraises de Wépion et les falaises de Tailfer.">
+    <link rel="manifest" href="manifest.json">
+    <title>Circuit Vélo Namur-Profondeville - 23km</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            background: #f5f5f5;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        #app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Header */
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.15);
+            z-index: 1000;
+            position: relative;
+        }
+        
+        #header h1 {
+            font-size: 19px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #header p {
+            font-size: 13px;
+            opacity: 0.95;
+        }
+        
+        .install-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255,255,255,0.25);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .install-btn:hover {
+            background: rgba(255,255,255,0.35);
+        }
+        
+        /* Map Section */
+        #map-section {
+            flex: 1;
+            position: relative;
+            min-height: 35%;
+            background: #e8f5e0;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        #location-info {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: white;
+            padding: 12px 18px;
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 13px;
+            z-index: 500;
+            font-weight: 600;
+        }
+        
+        #location-info .distance {
+            font-weight: 700;
+            color: #667eea;
+            font-size: 15px;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 500;
+        }
+        
+        .map-btn {
+            background: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            cursor: pointer;
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .map-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* Resizer */
+        #resizer {
+            height: 45px;
+            background: linear-gradient(to bottom, #ffffff 0%, #f0f0f0 50%, #ffffff 100%);
+            cursor: ns-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        #resizer::before {
+            content: '';
+            width: 50px;
+            height: 5px;
+            background: #ccc;
+            border-radius: 3px;
+        }
+        
+        #resizer::after {
+            content: '↕';
+            position: absolute;
+            right: 20px;
+            color: #999;
+            font-size: 18px;
+        }
+        
+        /* Info Section */
+        #info-section {
+            flex: 1;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 20px;
+            min-height: 30%;
+        }
+        
+        #info-section::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        #info-section::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        
+        .poi-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        
+        .poi-card h2 {
+            font-size: 24px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .poi-number {
+            background: rgba(255,255,255,0.25);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .poi-card .subtitle {
+            font-size: 15px;
+            opacity: 0.95;
+            font-style: italic;
+            margin-bottom: 18px;
+        }
+        
+        .poi-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+        
+        .poi-meta span {
+            background: rgba(255,255,255,0.25);
+            padding: 6px 14px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .audio-player {
+            background: rgba(255,255,255,0.97);
+            color: #333;
+            padding: 18px;
+            border-radius: 15px;
+            margin: 18px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+        
+        .play-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .play-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .audio-info {
+            flex: 1;
+        }
+        
+        .audio-info .title {
+            font-weight: 700;
+            margin-bottom: 5px;
+            font-size: 15px;
+        }
+        
+        .audio-info .duration {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .audio-progress {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .audio-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        
+        .poi-content {
+            line-height: 1.7;
+            font-size: 15px;
+        }
+        
+        .poi-content h3 {
+            margin-top: 18px;
+            margin-bottom: 10px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .poi-content p {
+            margin-bottom: 12px;
+        }
+        
+        .anecdote, .conseil {
+            background: rgba(255,255,255,0.18);
+            padding: 15px;
+            border-radius: 12px;
+            margin: 12px 0;
+            border-left: 4px solid rgba(255,255,255,0.6);
+        }
+        
+        .next-poi {
+            background: white;
+            color: #333;
+            padding: 18px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border-left: 5px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        
+        .next-poi h3 {
+            color: #667eea;
+            font-size: 17px;
+            margin-bottom: 10px;
+        }
+        
+        .next-poi p {
+            color: #555;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+        
+        .nav-buttons button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .nav-buttons button:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-prev {
+            background: #e0e0e0;
+            color: #666;
+        }
+        
+        .btn-next {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-prev:disabled, .btn-next:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        /* Leaflet custom styles */
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 5px;
+        }
+        
+        .leaflet-popup-content {
+            margin: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .custom-popup h3 {
+            margin: 0 0 8px 0;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        /* Loading indicator */
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            z-index: 2000;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 400px) {
+            #header h1 {
+                font-size: 16px;
+            }
+            .poi-card {
+                padding: 20px;
+            }
+            .poi-card h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <!-- Header -->
+        <div id="header">
+            <h1><span>🚴‍♂️</span> Namur - Profondeville</h1>
+            <p>23 km • 8 points d'intérêt • Niveau moyen</p>
+            <button class="install-btn" id="installBtn" style="display: none;">
+                📲 Installer
+            </button>
+        </div>
+        
+        <!-- Map Section -->
+        <div id="map-section">
+            <div id="map"></div>
+            <div id="location-info">
+                <div>Prochain: <span class="distance">-- m</span></div>
+            </div>
+            <div class="map-controls">
+                <div class="map-btn" onclick="centerOnUser()" title="Me localiser">
+                    📍
+                </div>
+                <div class="map-btn" onclick="fitBounds()" title="Voir tout le parcours">
+                    🗺️
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resizer -->
+        <div id="resizer"></div>
+        
+        <!-- Info Section -->
+        <div id="info-section">
+            <div id="poi-content">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const CONFIG = {
+            centerLat: 50.430,
+            centerLon: 4.855,
+            defaultZoom: 12,
+            detectionRadius: 100, // meters
+            audioBaseUrl: '' // Tu pourras mettre tes URLs audio ici
+        };
+
+        // Points d'intérêt
+        const pointsOfInterest = [
+            {
+                id: 1,
+                name: "La Confluence",
+                subtitle: "Où Sambre et Meuse se retrouvent",
+                lat: 50.46159942122213,
+                lon: 4.870368003321346,
+                km: 0,
+                icon: "🌊",
+                description: "Vous êtes au Grognon, l'ancien nom de ce lieu mythique ! C'est ici que tout a commencé pour Namur, il y a plus de 2000 ans. Sambre et Meuse s'embrassent dans un ballet aquatique qui a vu défiler Celtes, Romains, Vikings et bien d'autres...",
+                anecdote: "Saviez-vous que \"Grognon\" vient du celte \"Gronio\" qui signifie \"le nez\" ? Parce que ce bout de terre ressemble à un nez qui s'avance entre les deux rivières. Regardez bien, vous ne pourrez plus le \"dé-voir\" !",
+                conseil: "Prenez 2 minutes pour regarder les deux rivières : la Sambre arrive sombre et calme à gauche, la Meuse claire et vive à droite. Après leur rencontre, c'est la Meuse qui impose sa couleur !",
+                temps: "10 min",
+                audioUrl: "" // Tu ajouteras tes liens audio
+            },
+            {
+                id: 2,
+                name: "Le Téléphérique",
+                subtitle: "L'ascenseur avec vue",
+                lat: 50.461956624966035,
+                lon: 4.865178465843201,
+                km: 0.5,
+                icon: "🚡",
+                description: "Inauguré en 2021, ce téléphérique ultramoderne relie le centre-ville à la citadelle en 4 minutes chrono ! Une prouesse technique qui offre une vue plongeante sur la confluence et la vieille ville.",
+                anecdote: "Les Namurois ont mis 40 ans à se décider avant de construire ce téléphérique ! Il a fallu convaincre les sceptiques qu'une \"boîte suspendue\" ne défigurerait pas leur belle citadelle. Aujourd'hui ? Tout le monde l'adore !",
+                conseil: "Montée à vélo électrique possible (raide mais faisable !). Sinon, prenez le téléphérique pour économiser vos batteries 😉",
+                temps: "20 min",
+                audioUrl: ""
+            },
+            {
+                id: 3,
+                name: "Citadelle Terra Nova",
+                subtitle: "La forteresse qui a tout vu",
+                lat: 50.45887966666117,
+                lon: 4.861360072827666,
+                km: 1.5,
+                icon: "🏰",
+                description: "Bienvenue dans l'une des plus grandes citadelles d'Europe ! Terra Nova, le cœur de cette forteresse, a été bâtie et détruite 20 fois en 2000 ans. Vauban lui-même y a mis la main ! Aujourd'hui, vous pouvez explorer ses souterrains mystérieux.",
+                anecdote: "En 1692, Louis XIV en personne assiège Namur. Il installe son camp de luxe et regarde la bataille... comme au spectacle ! La citadelle tient 30 jours avant de se rendre. Trois ans plus tard, Guillaume d'Orange la reprend. C'est le tennis de l'époque, version fortifications ! 🏰",
+                conseil: "Les souterrains ! Une vraie ville sous la ville avec 7 km de galeries. Frissons garantis ! La vue depuis les remparts est spectaculaire.",
+                temps: "30-45 min",
+                audioUrl: ""
+            },
+            {
+                id: 4,
+                name: "Château de Namur",
+                subtitle: "Du château fort à l'hôtel de luxe",
+                lat: 50.45471640419048,
+                lon: 4.8553572893797545,
+                km: 2,
+                icon: "🏛️",
+                description: "Perché sur son éperon rocheux, ce château a été transformé en hôtel de luxe. Mais son histoire remonte au Moyen Âge quand les comtes de Namur y résidaient.",
+                anecdote: "Aujourd'hui, vous pouvez dormir là où dormaient les comtes... à condition d'y mettre le prix ! Leur restaurant gastronomique offre probablement le meilleur panorama de Belgique pour manger des asperges. 🍴",
+                conseil: "Juste avant le château, un point de vue magnifique sur la vallée de la Meuse ! Parfait pour une pause photo.",
+                temps: "5 min",
+                audioUrl: ""
+            },
+            {
+                id: 5,
+                name: "Champs de Fraises",
+                subtitle: "Le paradis rouge et sucré",
+                lat: 50.418898587657104,
+                lon: 4.8250966069463175,
+                km: 10,
+                icon: "🍓",
+                description: "Wépion = fraises ! Depuis 1880, ce petit village est LE royaume de la fraise en Belgique. Son secret ? Un microclimat parfait entre Meuse et coteaux, et un savoir-faire transmis de génération en génération.",
+                anecdote: "Les fraises de Wépion sont tellement réputées qu'en 1930, elles étaient servies à la table du roi ! Aujourd'hui encore, les grands chefs se battent pour avoir les premières fraises de la saison. Et vous savez quoi ? Elles sont meilleures fraîchement cueillies avec un peu de sucre et de chantilly. C'est scientifiquement prouvé ! 😋",
+                conseil: "En saison (mai-septembre): Achetez des fraises fraîches chez un producteur, goûtez une glace à la fraise maison, et prenez des photos dans les champs (avec permission !)",
+                temps: "15-30 min",
+                audioUrl: ""
+            },
+            {
+                id: 6,
+                name: "Fort Saint-Héribert",
+                subtitle: "Le gardien oublié",
+                lat: 50.41371060823832,
+                lon: 4.825769104063511,
+                km: 11.5,
+                icon: "🏰",
+                description: "Construit en 1888, ce fort faisait partie de la ceinture de défense de Namur. Armé de canons et de mitrailleuses, il devait protéger la ville... mais il a surtout servi de champignonnière après la guerre ! 🍄",
+                anecdote: "Les forts belges étaient révolutionnaires pour l'époque : entièrement en béton armé, avec ventilation et électricité. Le problème ? Les obus allemands de 1914 étaient ENCORE plus révolutionnaires. Le fort a résisté quelques jours avant d'être pulvérisé.",
+                conseil: "Vue imprenable depuis le fort sur la vallée de la Meuse. Parfait pour une pause photo !",
+                temps: "5 min",
+                audioUrl: ""
+            },
+            {
+                id: 7,
+                name: "Musée de la Fraise",
+                subtitle: "Le temple du fruit défendu",
+                lat: 50.41703750759587,
+                lon: 4.880076824487168,
+                km: 10.5,
+                icon: "🏛️",
+                description: "Dans une ancienne ferme du XVIIe siècle, ce musée unique raconte 140 ans d'histoire fraisicole ! Outils anciens, photos d'époque, et surtout : dégustation !",
+                anecdote: "Saviez-vous que la fraise n'est pas vraiment un fruit ? Ce sont les petits points jaunes à sa surface qui sont les vrais fruits ! La partie rouge et charnue qu'on mange est en fait... le réceptacle floral. Voilà, vous ne mangerez plus jamais vos fraises pareil ! 🤓",
+                conseil: "La boutique avec confitures et produits locaux vaut le détour ! La dégustation de fraises fraîches (en saison) est un must.",
+                temps: "30 min",
+                audioUrl: ""
+            },
+            {
+                id: 8,
+                name: "Carrière de Tailfer",
+                subtitle: "Les falaises spectaculaires",
+                lat: 50.38497944188806,
+                lon: 4.883216855814681,
+                km: 23,
+                icon: "⛰️",
+                description: "Ces impressionnantes falaises calcaires de 40 mètres de haut sont le résultat de l'exploitation d'une carrière pendant plus de 150 ans. Aujourd'hui, c'est un site naturel protégé et un spot prisé des grimpeurs !",
+                anecdote: "La pierre extraite ici a servi à construire une bonne partie de Namur et même certains bâtiments de Bruxelles ! On dit que chaque Namurois a un bout de Tailfer dans sa maison. Aujourd'hui, les seuls qui escaladent ces parois sont les grimpeurs courageux et... les faucons pèlerins qui y nichent ! 🦅",
+                conseil: "Le reflet des falaises dans la Meuse au coucher du soleil = Instagram gold ! 📷✨ Le belvédère est à 5 minutes à pied.",
+                temps: "30-60 min",
+                audioUrl: ""
+            }
+        ];
+
+        // State
+        let currentPOI = 0;
+        let map, userMarker, routeLine;
+        let userPosition = null;
+        let audioElement = null;
+        let deferredPrompt = null;
+
+        // Initialize map with GPX data
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false
+            }).setView([CONFIG.centerLat, CONFIG.centerLon], CONFIG.defaultZoom);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Add route line from GPX
+            drawRoute();
+
+            // Add POI markers
+            pointsOfInterest.forEach((poi, index) => {
+                const icon = L.divIcon({
+                    html: `<div style="background: #667eea; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.3); font-weight: bold;">${poi.icon}</div>`,
+                    className: '',
+                    iconSize: [40, 40]
+                });
+                
+                const marker = L.marker([poi.lat, poi.lon], { icon }).addTo(map);
+                marker.bindPopup(`<div class="custom-popup"><h3>${poi.icon} ${poi.name}</h3><p>${poi.subtitle}</p></div>`);
+                
+                marker.on('click', () => {
+                    currentPOI = index;
+                    displayPOI(index);
+                });
+            });
+
+            // Fit bounds to show all POIs
+            fitBounds();
+
+            // Get user location
+            if (navigator.geolocation) {
+                navigator.geolocation.watchPosition(updateUserPosition, handleLocationError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 10000,
+                    timeout: 5000
+                });
+            }
+        }
+
+        // Draw route from FULL GPX data (every point for accurate tracing)
+        function drawRoute() {
+            // FULL route coordinates from your GPX - ALL track points for precise road following
+            const routeCoords = [
+                [50.457662, 4.857935], [50.457572, 4.857889], [50.457589, 4.857720], [50.457595, 4.857645],
+                [50.457589, 4.857557], [50.457519, 4.857425], [50.456815, 4.856296], [50.456747, 4.856190],
+                [50.456675, 4.855979], [50.456644, 4.855844], [50.456630, 4.855667], [50.456639, 4.855408],
+                [50.456685, 4.855161], [50.456858, 4.854476], [50.457053, 4.853712], [50.457170, 4.853291],
+                [50.457210, 4.853051], [50.457213, 4.852845], [50.457191, 4.852672], [50.457169, 4.852489],
+                [50.457107, 4.852462], [50.456852, 4.853157], [50.456513, 4.853953], [50.455861, 4.855530],
+                [50.455766, 4.855651], [50.455624, 4.855731], [50.455469, 4.855727], [50.455353, 4.855615],
+                [50.455270, 4.855475], [50.455226, 4.855309], [50.455207, 4.855167], [50.455225, 4.855015],
+                [50.455335, 4.854736], [50.455473, 4.854351], [50.455624, 4.853897], [50.455378, 4.853749],
+                [50.455215, 4.853754], [50.454830, 4.853809], [50.454524, 4.853891], [50.454427, 4.853905],
+                [50.454207, 4.853583], [50.454062, 4.853372], [50.453966, 4.853195], [50.453995, 4.852913],
+                [50.454029, 4.852710], [50.454085, 4.852570], [50.454195, 4.852269], [50.454318, 4.852002],
+                [50.454406, 4.851791], [50.454443, 4.851637], [50.454446, 4.851478], [50.454435, 4.851135],
+                [50.454429, 4.850879], [50.454446, 4.850697], [50.454485, 4.850543], [50.454595, 4.850407],
+                [50.454757, 4.850255], [50.454887, 4.850155], [50.454709, 4.849988], [50.454441, 4.849674],
+                [50.454133, 4.849315], [50.453656, 4.848749], [50.453479, 4.848539], [50.453290, 4.848370],
+                [50.453128, 4.848282], [50.452926, 4.848224], [50.452733, 4.848178], [50.452524, 4.848155],
+                [50.452242, 4.848142], [50.451985, 4.848082], [50.451761, 4.847987], [50.451589, 4.847881],
+                [50.451359, 4.847775], [50.451108, 4.847669], [50.450969, 4.847603], [50.450850, 4.847549],
+                [50.450747, 4.847509], [50.450669, 4.847469], [50.450592, 4.847424], [50.450506, 4.847392],
+                [50.450460, 4.847394], [50.450357, 4.847511], [50.450140, 4.847821], [50.449926, 4.848174],
+                [50.449721, 4.848526], [50.449560, 4.848802], [50.449368, 4.849125], [50.449157, 4.849460],
+                [50.449109, 4.849445], [50.448949, 4.849476], [50.448838, 4.849485], [50.448724, 4.849473],
+                [50.448589, 4.849390], [50.448493, 4.849212], [50.448454, 4.849072], [50.448409, 4.848883],
+                [50.448264, 4.848381], [50.448088, 4.847782], [50.448022, 4.847488], [50.447941, 4.847141],
+                [50.447887, 4.846883], [50.447803, 4.846405], [50.447735, 4.846112], [50.447626, 4.845805],
+                [50.447525, 4.845499], [50.447451, 4.845320], [50.447354, 4.845108], [50.447199, 4.844772],
+                [50.447024, 4.844431], [50.446867, 4.844206], [50.446675, 4.844076], [50.446546, 4.844020],
+                [50.446444, 4.843969], [50.446308, 4.843866], [50.446237, 4.843721], [50.446161, 4.843551],
+                [50.446070, 4.843288], [50.445957, 4.842965], [50.445856, 4.842644], [50.445743, 4.842351],
+                [50.445648, 4.842103], [50.445558, 4.841867], [50.445471, 4.841596], [50.445415, 4.841436],
+                [50.445360, 4.841266], [50.445243, 4.841012], [50.445114, 4.840809], [50.444958, 4.840637],
+                [50.444800, 4.840517], [50.444634, 4.840413], [50.444495, 4.840297], [50.444357, 4.840195],
+                [50.444132, 4.839979], [50.443992, 4.839848], [50.443820, 4.839667], [50.443640, 4.839504],
+                [50.443473, 4.839362], [50.443215, 4.839089], [50.443092, 4.838971], [50.442923, 4.838803],
+                [50.442787, 4.838675], [50.442679, 4.838596], [50.442510, 4.838465], [50.442344, 4.838420],
+                [50.442149, 4.838368], [50.441995, 4.838375], [50.441972, 4.838369], [50.441922, 4.838286],
+                [50.441817, 4.838064], [50.441683, 4.837775], [50.441545, 4.837495], [50.441399, 4.837190],
+                [50.441235, 4.836885], [50.441080, 4.836570], [50.440925, 4.836264], [50.440782, 4.835941],
+                [50.440675, 4.835560], [50.440552, 4.835144], [50.440393, 4.834610], [50.440217, 4.834042],
+                [50.440051, 4.833467], [50.439893, 4.832936], [50.439901, 4.832580], [50.439893, 4.832269],
+                [50.439885, 4.831998], [50.439887, 4.831723], [50.439884, 4.831443], [50.439896, 4.831176],
+                [50.439929, 4.830971], [50.439996, 4.830865], [50.440044, 4.830797], [50.440101, 4.830721],
+                [50.440173, 4.830625], [50.440254, 4.830517], [50.440306, 4.830393], [50.440345, 4.830229],
+                [50.440394, 4.830039], [50.440409, 4.829884], [50.440427, 4.829720], [50.440453, 4.829523],
+                [50.440473, 4.829353], [50.440512, 4.828995], [50.440549, 4.828766], [50.440579, 4.828487],
+                [50.440605, 4.828278], [50.440622, 4.828137], [50.440644, 4.827985], [50.440708, 4.827788],
+                [50.440755, 4.827617], [50.440802, 4.827462], [50.440728, 4.827389], [50.440611, 4.827300],
+                [50.440460, 4.827175], [50.440296, 4.827010], [50.440153, 4.826901], [50.440046, 4.826832],
+                [50.439793, 4.826643], [50.439701, 4.826534], [50.439671, 4.826478], [50.439640, 4.826363],
+                [50.439578, 4.826246], [50.439495, 4.826124], [50.439434, 4.826015], [50.439372, 4.825939],
+                [50.439315, 4.825864], [50.439263, 4.825763], [50.439133, 4.825604], [50.438993, 4.825542],
+                [50.438758, 4.825417], [50.438492, 4.825244], [50.438404, 4.825134], [50.438283, 4.825073],
+                [50.438057, 4.824927], [50.437847, 4.824669], [50.437618, 4.824452], [50.437398, 4.824295],
+                [50.437241, 4.823995], [50.437081, 4.823679], [50.437003, 4.823723], [50.436894, 4.823801],
+                [50.436761, 4.823917], [50.436626, 4.824046], [50.436501, 4.824234], [50.436386, 4.824450],
+                [50.436277, 4.824618], [50.436155, 4.824711], [50.436023, 4.824769], [50.435911, 4.824819],
+                [50.435802, 4.824877], [50.435685, 4.824953], [50.435577, 4.825003], [50.435398, 4.825027],
+                [50.435258, 4.825125], [50.435167, 4.825188], [50.435077, 4.825254], [50.434964, 4.825337],
+                [50.434853, 4.825422], [50.434746, 4.825505], [50.434656, 4.825580], [50.434591, 4.825655],
+                [50.434780, 4.825974], [50.434711, 4.826007], [50.434591, 4.825995], [50.434484, 4.825978],
+                [50.434343, 4.826000], [50.434197, 4.826060], [50.434042, 4.826139], [50.433912, 4.826229],
+                [50.433783, 4.826339], [50.433648, 4.826448], [50.433518, 4.826544], [50.433405, 4.826648],
+                [50.433256, 4.826770], [50.433128, 4.826873], [50.432983, 4.826982], [50.432828, 4.827103],
+                [50.432677, 4.827212], [50.432523, 4.827308], [50.432371, 4.827416], [50.432244, 4.827541],
+                [50.432093, 4.827675], [50.431954, 4.827815], [50.431657, 4.828121], [50.431511, 4.828313],
+                [50.431340, 4.828547], [50.431135, 4.828794], [50.430934, 4.829075], [50.430802, 4.829242],
+                [50.430672, 4.829367], [50.430546, 4.829488], [50.430422, 4.829524], [50.430273, 4.829537],
+                [50.430126, 4.829501], [50.430003, 4.829437], [50.429926, 4.829399], [50.429794, 4.829235],
+                [50.429647, 4.829061], [50.429532, 4.828888], [50.429381, 4.828685], [50.429288, 4.828562],
+                [50.429096, 4.828386], [50.428947, 4.828277], [50.428848, 4.828189], [50.428681, 4.828055],
+                [50.428579, 4.827977], [50.428351, 4.827876], [50.428223, 4.827845], [50.427991, 4.827895],
+                [50.427878, 4.827993], [50.427678, 4.828169], [50.427520, 4.828504], [50.427404, 4.828752],
+                [50.427293, 4.829022], [50.427212, 4.829200], [50.427153, 4.829329], [50.427043, 4.829529],
+                [50.426959, 4.829704], [50.426858, 4.829914], [50.426764, 4.830106], [50.426654, 4.830331],
+                [50.426520, 4.830505], [50.426358, 4.830620], [50.426206, 4.830675], [50.426046, 4.830729],
+                [50.425889, 4.830552], [50.425674, 4.830318], [50.425414, 4.830145], [50.425121, 4.829980],
+                [50.424851, 4.829750], [50.424573, 4.829538], [50.424357, 4.829322], [50.424164, 4.829101],
+                [50.423981, 4.828920], [50.423834, 4.828778], [50.423716, 4.828656], [50.423593, 4.828539],
+                [50.423486, 4.828445], [50.423332, 4.828318], [50.423183, 4.828165], [50.423043, 4.828039],
+                [50.422892, 4.827908], [50.422758, 4.827769], [50.422527, 4.827542], [50.422334, 4.827366],
+                [50.421968, 4.827000], [50.421718, 4.826762], [50.421351, 4.826354], [50.421008, 4.825983],
+                [50.420849, 4.825826], [50.420767, 4.825718], [50.420662, 4.825621], [50.420537, 4.825513],
+                [50.420412, 4.825384], [50.420261, 4.825239], [50.420146, 4.825116], [50.419993, 4.824971],
+                [50.419874, 4.824859], [50.419666, 4.824651], [50.419537, 4.824532], [50.419268, 4.824252],
+                [50.418988, 4.823984], [50.418722, 4.823705], [50.418426, 4.823422], [50.418282, 4.823269],
+                [50.418132, 4.823123], [50.417986, 4.822972], [50.417864, 4.822844], [50.417724, 4.822681],
+                [50.417598, 4.822554], [50.417445, 4.822400], [50.417293, 4.822252], [50.417123, 4.822164],
+                [50.416987, 4.822248], [50.416916, 4.822323], [50.416818, 4.822414], [50.416717, 4.822518],
+                [50.416640, 4.822601], [50.416540, 4.822700], [50.416433, 4.822808], [50.416346, 4.822909],
+                [50.416233, 4.823022], [50.416118, 4.823134], [50.416030, 4.823227], [50.415923, 4.823333],
+                [50.415817, 4.823441], [50.415718, 4.823547], [50.415634, 4.823634], [50.415535, 4.823735],
+                [50.415433, 4.823828], [50.415335, 4.823935], [50.415230, 4.824043], [50.415144, 4.824129],
+                [50.415034, 4.824242], [50.414926, 4.824351], [50.414805, 4.824465], [50.414682, 4.824593],
+                [50.414548, 4.824729], [50.414410, 4.824869], [50.414269, 4.825006], [50.414131, 4.825149],
+                [50.413989, 4.825280], [50.413846, 4.825418], [50.413700, 4.825558], [50.413578, 4.825677],
+                [50.413449, 4.825804], [50.413286, 4.825959], [50.413120, 4.826124], [50.412951, 4.826289],
+                [50.412769, 4.826467], [50.412617, 4.826614], [50.412426, 4.826802], [50.412234, 4.826987],
+                [50.412032, 4.827183], [50.411817, 4.827391], [50.411600, 4.827605], [50.411383, 4.827818],
+                [50.411162, 4.828029], [50.410945, 4.828238], [50.410770, 4.828412], [50.410545, 4.828590],
+                [50.410353, 4.828726], [50.410109, 4.828879], [50.409872, 4.829016], [50.409644, 4.829145],
+                [50.409427, 4.829261], [50.409223, 4.829362], [50.409062, 4.829440], [50.408860, 4.829541],
+                [50.408687, 4.829623], [50.408529, 4.829666], [50.408443, 4.829648], [50.408215, 4.829590],
+                [50.407979, 4.829556], [50.407740, 4.829543], [50.407508, 4.829536], [50.407275, 4.829529],
+                [50.407036, 4.829529], [50.406785, 4.829516], [50.406531, 4.829566], [50.406246, 4.829639],
+                [50.405975, 4.829736], [50.405806, 4.829768], [50.405732, 4.829727], [50.405626, 4.829789],
+                [50.405418, 4.829893], [50.405217, 4.830001], [50.404937, 4.830134], [50.404643, 4.830298],
+                [50.404346, 4.830455], [50.404022, 4.830620], [50.403651, 4.830811], [50.403289, 4.831007],
+                [50.402961, 4.831182], [50.402721, 4.831306], [50.402532, 4.831394], [50.402333, 4.831580],
+                [50.402198, 4.831731], [50.402072, 4.831926], [50.401903, 4.832141], [50.401734, 4.832357],
+                [50.401533, 4.832582], [50.401358, 4.832788], [50.401053, 4.833150], [50.400894, 4.833370],
+                [50.400767, 4.833682], [50.400675, 4.833924], [50.400564, 4.834230], [50.400448, 4.834554],
+                [50.400356, 4.835050], [50.400253, 4.835544], [50.400158, 4.836073], [50.400030, 4.836635],
+                [50.399881, 4.837232], [50.399743, 4.837806], [50.399629, 4.838239], [50.399571, 4.838388],
+                [50.399446, 4.838549], [50.399326, 4.838591], [50.399188, 4.838654], [50.398982, 4.838766],
+                [50.398729, 4.838926], [50.398417, 4.839057], [50.398115, 4.839161], [50.398149, 4.839488],
+                [50.398183, 4.839798], [50.398207, 4.840072], [50.398223, 4.840304], [50.398249, 4.840530],
+                [50.398246, 4.840792], [50.398204, 4.841161], [50.398186, 4.841406], [50.398166, 4.841622],
+                [50.398154, 4.841836], [50.398142, 4.842039], [50.398122, 4.842242], [50.398108, 4.842444],
+                [50.398080, 4.842667], [50.398010, 4.843085], [50.397982, 4.843220], [50.397946, 4.843373],
+                [50.397884, 4.843646], [50.397762, 4.844048], [50.397596, 4.844489], [50.397408, 4.844958],
+                [50.397192, 4.845511], [50.396950, 4.846128], [50.396694, 4.846773], [50.396429, 4.847434],
+                [50.396141, 4.848117], [50.395877, 4.848779], [50.395637, 4.849422], [50.395438, 4.849915],
+                [50.395281, 4.850302], [50.395098, 4.850797], [50.394901, 4.851321], [50.394694, 4.851875],
+                [50.394533, 4.852279], [50.394313, 4.852832], [50.394071, 4.853431], [50.393831, 4.854033],
+                [50.393604, 4.854600], [50.393395, 4.855112], [50.393239, 4.855507], [50.393164, 4.855700],
+                [50.393069, 4.855938], [50.392983, 4.856174], [50.392841, 4.856523],                 [50.392750, 4.856744], [50.392651, 4.856929], [50.392398, 4.857279], [50.392109, 4.857671],
+                [50.391944, 4.857875], [50.391888, 4.857978], [50.391854, 4.858124], [50.391852, 4.858214],
+                [50.391867, 4.858542], [50.391866, 4.858843], [50.391819, 4.859240], [50.391765, 4.859499],
+                [50.391721, 4.859709], [50.391685, 4.859864], [50.391644, 4.860082], [50.391595, 4.860309],
+                [50.391559, 4.860464], [50.391512, 4.860740], [50.391461, 4.860928], [50.391384, 4.861192],
+                [50.391311, 4.861464], [50.391229, 4.861743], [50.391193, 4.861878], [50.391155, 4.862019],
+                [50.391067, 4.862299], [50.390952, 4.862684], [50.390845, 4.863028], [50.390684, 4.863515],
+                [50.390591, 4.863816], [50.390568, 4.864065], [50.390570, 4.864514], [50.390583, 4.865176],
+                [50.390594, 4.865670], [50.390603, 4.866220], [50.390611, 4.866819], [50.390586, 4.867204],
+                [50.390523, 4.867466], [50.390301, 4.868560], [50.390164, 4.869282], [50.390066, 4.869902],
+                [50.390032, 4.870238], [50.390026, 4.870583], [50.390003, 4.870908], [50.389945, 4.871230],
+                [50.389891, 4.871890], [50.389842, 4.872565], [50.389801, 4.873228], [50.389775, 4.873706],
+                [50.389733, 4.874378], [50.389765, 4.874870], [50.389832, 4.875512], [50.389891, 4.875986],
+                [50.389959, 4.876320], [50.390037, 4.876638], [50.390149, 4.876951], [50.390266, 4.877270],
+                [50.390445, 4.877704], [50.390297, 4.877703], [50.390280, 4.877870], [50.390256, 4.878144],
+                [50.390235, 4.878458], [50.390214, 4.878770], [50.390207, 4.879058], [50.390200, 4.879327],
+                [50.390206, 4.879439], [50.390313, 4.879494], [50.390498, 4.879551], [50.390730, 4.879607],
+                [50.390981, 4.879655], [50.391186, 4.879695], [50.391442, 4.879751], [50.391697, 4.879816],
+                [50.391811, 4.879831], [50.391956, 4.879884], [50.392167, 4.879945], [50.392424, 4.880038],
+                [50.392686, 4.880135], [50.392955, 4.880222], [50.393169, 4.880274], [50.393434, 4.880341],
+                [50.393698, 4.880383], [50.393913, 4.880419], [50.394186, 4.880457], [50.394403, 4.880484],
+                [50.394679, 4.880511], [50.394965, 4.880548], [50.395253, 4.880593], [50.395542, 4.880642],
+                [50.395827, 4.880694], [50.396113, 4.880737], [50.396377, 4.880761], [50.396655, 4.880809],
+                [50.396902, 4.880844], [50.397182, 4.880891], [50.397431, 4.880898], [50.397667, 4.880908],
+                [50.397932, 4.880920], [50.398141, 4.881021], [50.398447, 4.881097], [50.398688, 4.881126],
+                [50.398939, 4.881224], [50.399207, 4.881270], [50.399604, 4.881283], [50.399695, 4.881294],
+                [50.399926, 4.881330], [50.400084, 4.881359], [50.400209, 4.881349], [50.400343, 4.881373],
+                [50.400543, 4.881383], [50.400756, 4.881388], [50.400937, 4.881381], [50.401223, 4.881375],
+                [50.401653, 4.881399], [50.401916, 4.881396], [50.402195, 4.881398], [50.402511, 4.881386],
+                [50.402808, 4.881450], [50.403233, 4.881652], [50.403511, 4.881793], [50.403962, 4.882038],
+                [50.404211, 4.882184], [50.404474, 4.882308], [50.404777, 4.882407], [50.405040, 4.882475],
+                [50.405279, 4.882541], [50.405597, 4.882589], [50.405869, 4.882617], [50.406126, 4.882652],
+                [50.406400, 4.882669], [50.406685, 4.882685], [50.406920, 4.882677], [50.407204, 4.882698],
+                [50.407500, 4.882776], [50.407742, 4.882836], [50.407984, 4.882880], [50.408276, 4.882943],
+                [50.408563, 4.883010], [50.408854, 4.883065], [50.409140, 4.883107], [50.409414, 4.883147],
+                [50.409693, 4.883175], [50.409965, 4.883208], [50.410235, 4.883223], [50.410488, 4.883227],
+                [50.410705, 4.883221], [50.410806, 4.883226], [50.410965, 4.883210], [50.411207, 4.883166],
+                [50.411474, 4.883112], [50.411679, 4.883068], [50.411999, 4.882985], [50.412171, 4.882941],
+                [50.412408, 4.882878], [50.412609, 4.882835], [50.412838, 4.882779], [50.413077, 4.882735],
+                [50.413335, 4.882690], [50.413523, 4.882658], [50.413768, 4.882614], [50.414021, 4.882524],
+                [50.414276, 4.882410], [50.414528, 4.882254], [50.414787, 4.882099], [50.415051, 4.881915],
+                [50.415315, 4.881705], [50.415569, 4.881494], [50.415828, 4.881288], [50.416081, 4.881075],
+                [50.416331, 4.880860], [50.416570, 4.880623], [50.416810, 4.880387], [50.417041, 4.880116],
+                [50.417223, 4.879907], [50.417454, 4.879649], [50.417635, 4.879446], [50.417874, 4.879198],
+                [50.418071, 4.879009], [50.418341, 4.878804], [50.418606, 4.878633], [50.418887, 4.878505],
+                [50.419104, 4.878432], [50.419318, 4.878359], [50.419488, 4.878297], [50.419729, 4.878232],
+                [50.419999, 4.878168], [50.420274, 4.878109], [50.420565, 4.878056], [50.420859, 4.878019],
+                [50.421153, 4.877949], [50.421434, 4.877791], [50.421706, 4.877596], [50.421974, 4.877406],
+                [50.422187, 4.877259], [50.422430, 4.877060], [50.422536, 4.876944], [50.422596, 4.876799],
+                [50.422708, 4.876532], [50.422835, 4.876202], [50.422974, 4.875866], [50.423103, 4.875540],
+                [50.423199, 4.875268], [50.423323, 4.875001], [50.423448, 4.874683], [50.423579, 4.874359],
+                [50.423727, 4.874051], [50.423843, 4.873826], [50.423888, 4.873762], [50.423944, 4.873622],
+                [50.424046, 4.873361], [50.424191, 4.873101], [50.424330, 4.872839], [50.424476, 4.872547],
+                [50.424633, 4.872240], [50.424800, 4.871938], [50.424952, 4.871726], [50.425154, 4.871475],
+                [50.425318, 4.871268], [50.425526, 4.871011], [50.425736, 4.870751], [50.425947, 4.870533],
+                [50.426100, 4.870304], [50.426277, 4.870025], [50.426409, 4.869858], [50.426584, 4.869609],
+                [50.426736, 4.869418], [50.426950, 4.869200], [50.427135, 4.869047], [50.427369, 4.868863],
+                [50.427603, 4.868671], [50.427837, 4.868484], [50.428070, 4.868297], [50.428253, 4.868138],
+                [50.428494, 4.867948], [50.428729, 4.867764], [50.428962, 4.867575], [50.429190, 4.867385],
+                [50.429417, 4.867207], [50.429638, 4.867018], [50.429852, 4.866778], [50.430062, 4.866534],
+                [50.430262, 4.866287], [50.430419, 4.866086], [50.430620, 4.865831], [50.430824, 4.865571],
+                [50.431022, 4.865311], [50.431221, 4.865072], [50.431415, 4.864824], [50.431622, 4.864579],
+                [50.431782, 4.864386], [50.431979, 4.864168], [50.432174, 4.863961], [50.432385, 4.863761],
+                [50.432530, 4.863657], [50.432635, 4.863562], [50.432824, 4.863417], [50.433043, 4.863269],
+                [50.433281, 4.863134], [50.433533, 4.863051], [50.433738, 4.863004], [50.434020, 4.862939],
+                [50.434158, 4.862908], [50.434380, 4.862861], [50.434599, 4.862814], [50.434821, 4.862761],
+                [50.435022, 4.862719], [50.435311, 4.862667], [50.435600, 4.862611], [50.435866, 4.862558],
+                [50.436066, 4.862519], [50.436282, 4.862450], [50.436502, 4.862388], [50.436746, 4.862337],
+                [50.436988, 4.862261], [50.437233, 4.862190], [50.437475, 4.862098], [50.437714, 4.861977],
+                [50.437898, 4.861869], [50.438130, 4.861732], [50.438311, 4.861616], [50.438528, 4.861460],
+                [50.438736, 4.861329], [50.438859, 4.861289], [50.439066, 4.861181], [50.439296, 4.861054],
+                [50.439530, 4.860930], [50.439772, 4.860799], [50.439982, 4.860670], [50.440149, 4.860545],
+                [50.440373, 4.860403], [50.440737, 4.860117], [50.440929, 4.859963], [50.441147, 4.859798],
+                [50.441342, 4.859640], [50.441500, 4.859544], [50.441705, 4.859458], [50.441921, 4.859366],
+                [50.442141, 4.859271], [50.442366, 4.859198], [50.442602, 4.859139], [50.442834, 4.859077],
+                [50.443072, 4.859014], [50.443314, 4.858983], [50.443493, 4.858993], [50.443726, 4.859018],
+                [50.443971, 4.859046], [50.444215, 4.859072], [50.444444, 4.859096], [50.444677, 4.859124],
+                [50.444921, 4.859141], [50.445173, 4.859167], [50.445409, 4.859201], [50.445530, 4.859274],
+                [50.445608, 4.859286], [50.445744, 4.859281], [50.445952, 4.859328], [50.446180, 4.859359],
+                [50.446417, 4.859379], [50.446664, 4.859414], [50.446856, 4.859439], [50.447092, 4.859474],
+                [50.447320, 4.859533], [50.447548, 4.859578], [50.447779, 4.859624], [50.447997, 4.859681],
+                [50.448150, 4.859713], [50.448266, 4.859741], [50.448428, 4.859795], [50.448633, 4.859843],
+                [50.448842, 4.859897], [50.449042, 4.859950], [50.449239, 4.859993], [50.449456, 4.860047],
+                [50.449683, 4.860113], [50.449874, 4.860141], [50.450088, 4.860205], [50.450298, 4.860263],
+                [50.450519, 4.860312], [50.450720, 4.860369], [50.450928, 4.860415], [50.451140, 4.860462],
+                [50.451226, 4.860425], [50.451359, 4.860421], [50.451497, 4.860465], [50.451599, 4.860523],
+                [50.451705, 4.860527], [50.451984, 4.860536], [50.452195, 4.860596], [50.452416, 4.860655],
+                [50.452609, 4.860695], [50.452790, 4.860775], [50.452932, 4.860844], [50.453111, 4.860952],
+                [50.453309, 4.861081], [50.453522, 4.861210], [50.453717, 4.861321], [50.453913, 4.861435],
+                [50.454060, 4.861536], [50.454259, 4.861651], [50.454454, 4.861777], [50.454636, 4.861886],
+                [50.454877, 4.862015], [50.455357, 4.862270], [50.455445, 4.862156], [50.455559, 4.862034],
+                [50.455708, 4.862071], [50.456518, 4.862247], [50.456658, 4.862273], [50.456909, 4.862329],
+                [50.457100, 4.862408], [50.457310, 4.862542], [50.457645, 4.862872], [50.457950, 4.863143],
+                [50.458236, 4.863325], [50.458612, 4.863607], [50.458806, 4.863747], [50.458852, 4.863741],
+                [50.458877, 4.863693], [50.458883, 4.863656], [50.458871, 4.863609], [50.458455, 4.863195],
+                [50.458229, 4.862973], [50.458029, 4.862787], [50.457716, 4.862494], [50.457546, 4.862344],
+                [50.457448, 4.862244], [50.457452, 4.862173], [50.457494, 4.862131], [50.458225, 4.862653],
+                [50.458520, 4.862859], [50.458722, 4.863056], [50.458942, 4.863309], [50.459149, 4.863569],
+                [50.459518, 4.864258], [50.459552, 4.864430], [50.459776, 4.864678], [50.459960, 4.864957],
+                [50.459983, 4.864975], [50.460000, 4.864977], [50.460035, 4.864968], [50.460059, 4.864926],
+                [50.460059, 4.864865], [50.460033, 4.864803], [50.459979, 4.864720], [50.459946, 4.864621],
+                [50.459955, 4.864491], [50.460005, 4.864403], [50.460161, 4.864290], [50.460329, 4.864177],
+                [50.460410, 4.864145], [50.460518, 4.864148], [50.460557, 4.864172], [50.460592, 4.864214],
+                [50.460629, 4.864260], [50.460650, 4.864317], [50.460670, 4.864407], [50.460677, 4.864499],
+                [50.460668, 4.864657], [50.460658, 4.864809], [50.460653, 4.865071], [50.460692, 4.865308],
+                [50.460691, 4.865392], [50.460677, 4.865469], [50.460642, 4.865526], [50.460602, 4.865567],
+                [50.460563, 4.865595], [50.460518, 4.865607], [50.460476, 4.865614], [50.460434, 4.865589],
+                [50.460392, 4.865564], [50.460356, 4.865510], [50.460325, 4.865405], [50.460312, 4.865072],
+                [50.460293, 4.864871], [50.460269, 4.864730], [50.460165, 4.864506], [50.460021, 4.864028],
+                [50.459740, 4.863881], [50.459464, 4.863478], [50.459324, 4.863191], [50.459183, 4.863007],
+                [50.459061, 4.862816], [50.458739, 4.862203], [50.458513, 4.861842], [50.458288, 4.861564],
+                [50.458093, 4.861431], [50.457833, 4.861245], [50.457711, 4.861114], [50.457592, 4.860973],
+                [50.457074, 4.860415], [50.456814, 4.860118], [50.456728, 4.859946], [50.456709, 4.859749],
+                [50.456704, 4.859386], [50.456693, 4.859282], [50.456671, 4.859195], [50.456625, 4.859052],
+                [50.456559, 4.858902], [50.456336, 4.858608], [50.455977, 4.858113], [50.455685, 4.857571],
+                [50.455656, 4.857503], [50.455647, 4.857419], [50.455671, 4.857343], [50.455706, 4.857306],
+                [50.455757, 4.857271], [50.455808, 4.857299], [50.456102, 4.857714], [50.456383, 4.858158],
+                [50.456706, 4.858646], [50.456766, 4.858733], [50.456813, 4.858755], [50.456875, 4.858782],
+                [50.456932, 4.858789], [50.457026, 4.858737], [50.457283, 4.858362], [50.457564, 4.857903],
+                [50.457668, 4.857953]
+            ];
+
+            // Create polyline with enhanced styling
+            routeLine = L.polyline(routeCoords, {
+                color: '#667eea',
+                weight: 6,
+                opacity: 0.85,
+                lineJoin: 'round',
+                lineCap: 'round',
+                smoothFactor: 2
+            }).addTo(map);
+
+            // Add shadow effect
+            L.polyline(routeCoords, {
+                color: '#000000',
+                weight: 8,
+                opacity: 0.15,
+                lineJoin: 'round',
+                lineCap: 'round',
+                smoothFactor: 2
+            }).addTo(map);
+        }
+
+        function updateUserPosition(position) {
+            userPosition = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude
+            };
+
+            if (userMarker) {
+                userMarker.setLatLng([userPosition.lat, userPosition.lon]);
+            } else {
+                const icon = L.divIcon({
+                    html: `<div style="background: #ff4757; color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 4px solid white; box-shadow: 0 4px 15px rgba(255,71,87,0.5); animation: pulse 2s infinite;">📍</div>`,
+                    className: '',
+                    iconSize: [45, 45]
+                });
+                
+                userMarker = L.marker([userPosition.lat, userPosition.lon], { icon }).addTo(map);
+                map.setView([userPosition.lat, userPosition.lon], 14);
+            }
+
+            updateDistanceInfo();
+            checkProximityToPOI();
+        }
+
+        function handleLocationError(error) {
+            console.log('Geolocation error:', error.message);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3;
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c;
+        }
+
+        function updateDistanceInfo() {
+            if (!userPosition) {
+                document.querySelector('.distance').textContent = 'GPS en attente...';
+                return;
+            }
+
+            const nextPOI = pointsOfInterest[currentPOI];
+            const distance = calculateDistance(
+                userPosition.lat, userPosition.lon,
+                nextPOI.lat, nextPOI.lon
+            );
+
+            const distanceText = distance < 1000 
+                ? `${Math.round(distance)} m` 
+                : `${(distance / 1000).toFixed(1)} km`;
+
+            document.querySelector('.distance').textContent = distanceText;
+        }
+
+        function checkProximityToPOI() {
+            if (!userPosition) return;
+
+            pointsOfInterest.forEach((poi, index) => {
+                const distance = calculateDistance(
+                    userPosition.lat, userPosition.lon,
+                    poi.lat, poi.lon
+                );
+
+                if (distance < CONFIG.detectionRadius && index !== currentPOI) {
+                    currentPOI = index;
+                    displayPOI(index);
+                    
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        new Notification(`🎯 ${poi.icon} ${poi.name}`, {
+                            body: poi.subtitle,
+                            icon: '/icon-192.png'
+                        });
+                    }
+                }
+            });
+        }
+
+        function displayPOI(index) {
+            const poi = pointsOfInterest[index];
+            const nextPOI = pointsOfInterest[index + 1];
+
+            const content = `
+                <div class="poi-card">
+                    <h2>
+                        <span class="poi-number">${poi.id}</span>
+                        ${poi.icon} ${poi.name}
+                    </h2>
+                    <div class="subtitle">${poi.subtitle}</div>
+                    
+                    <div class="poi-meta">
+                        <span>📍 Km ${poi.km}</span>
+                        <span>⏱️ ${poi.temps}</span>
+                    </div>
+
+                    <div class="audio-player">
+                        <div class="audio-controls">
+                            <button class="play-btn" onclick="toggleAudio(${index})" id="playBtn${index}">
+                                ▶️
+                            </button>
+                            <div class="audio-info">
+                                <div class="title">🎧 Écouter l'histoire</div>
+                                <div class="duration">Audio ~ 2 min</div>
+                            </div>
+                        </div>
+                        <div class="audio-progress" onclick="seekAudio(event, ${index})">
+                            <div class="audio-progress-bar" id="progressBar${index}"></div>
+                        </div>
+                    </div>
+
+                    <div class="poi-content">
+                        <h3>📖 L'histoire</h3>
+                        <p>${poi.description}</p>
+
+                        <div class="anecdote">
+                            <h3>🎭 L'anecdote à raconter</h3>
+                            <p>${poi.anecdote}</p>
+                        </div>
+
+                        <div class="conseil">
+                            <h3>💡 Le conseil du guide</h3>
+                            <p>${poi.conseil}</p>
+                        </div>
+                    </div>
+                </div>
+
+                ${nextPOI ? `
+                    <div class="next-poi">
+                        <h3>👉 Prochaine étape</h3>
+                        <p><strong>${nextPOI.icon} ${nextPOI.name}</strong> - Km ${nextPOI.km}</p>
+                        <p>${nextPOI.subtitle}</p>
+                    </div>
+                ` : `
+                    <div class="next-poi">
+                        <h3>🎉 Félicitations !</h3>
+                        <p>Vous avez terminé le circuit ! Profitez des falaises de Profondeville et de la terrasse d'un café au bord de la Meuse.</p>
+                        <p>🚂 Retour à Namur : Train depuis la gare de Profondeville (15 min)</p>
+                    </div>
+                `}
+
+                <div class="nav-buttons">
+                    <button class="btn-prev" onclick="previousPOI()" ${index === 0 ? 'disabled' : ''}>
+                        ← Précédent
+                    </button>
+                    <button class="btn-next" onclick="nextPOI()" ${index === pointsOfInterest.length - 1 ? 'disabled' : ''}>
+                        Suivant →
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('poi-content').innerHTML = content;
+            document.getElementById('info-section').scrollTop = 0;
+
+            map.setView([poi.lat, poi.lon], 15, {
+                animate: true,
+                duration: 0.5
+            });
+
+            updateDistanceInfo();
+        }
+
+        function toggleAudio(index) {
+            const poi = pointsOfInterest[index];
+            const btn = document.getElementById(`playBtn${index}`);
+            
+            // Demo mode - in production, use real audio
+            if (poi.audioUrl) {
+                // Real audio implementation
+                if (!audioElement || audioElement.src !== poi.audioUrl) {
+                    if (audioElement) audioElement.pause();
+                    audioElement = new Audio(poi.audioUrl);
+                    audioElement.addEventListener('timeupdate', () => updateProgress(index));
+                    audioElement.addEventListener('ended', () => {
+                        btn.textContent = '▶️';
+                    });
+                }
+                
+                if (audioElement.paused) {
+                    audioElement.play();
+                    btn.textContent = '⏸️';
+                } else {
+                    audioElement.pause();
+                    btn.textContent = '▶️';
+                }
+            } else {
+                // Demo mode
+                alert(`🎧 Audio du point ${index + 1}: ${poi.name}\n\n📝 MODE DÉMO\n\nDans la version finale, l'audio se lancera automatiquement ici.\n\nTu pourras uploader tes fichiers audio (MP3) et ils seront lus directement dans l'app !\n\nFormats supportés: MP3, OGG, WAV`);
+            }
+        }
+
+        function updateProgress(index) {
+            if (!audioElement) return;
+            const progress = (audioElement.currentTime / audioElement.duration) * 100;
+            document.getElementById(`progressBar${index}`).style.width = `${progress}%`;
+        }
+
+        function seekAudio(event, index) {
+            if (!audioElement) return;
+            const progressBar = event.currentTarget;
+            const clickPosition = event.offsetX / progressBar.offsetWidth;
+            audioElement.currentTime = clickPosition * audioElement.duration;
+        }
+
+        function nextPOI() {
+            if (currentPOI < pointsOfInterest.length - 1) {
+                currentPOI++;
+                displayPOI(currentPOI);
+            }
+        }
+
+        function previousPOI() {
+            if (currentPOI > 0) {
+                currentPOI--;
+                displayPOI(currentPOI);
+            }
+        }
+
+        function centerOnUser() {
+            if (userPosition) {
+                map.setView([userPosition.lat, userPosition.lon], 15, {
+                    animate: true
+                });
+            } else {
+                alert('📍 Position GPS non disponible.\n\nAssurez-vous d\'avoir autorisé la géolocalisation.');
+            }
+        }
+
+        function fitBounds() {
+            if (routeLine) {
+                map.fitBounds(routeLine.getBounds(), {
+                    padding: [50, 50]
+                });
+            }
+        }
+
+        // Resizer functionality
+        let isResizing = false;
+        let startY = 0;
+        let startMapHeight = 0;
+
+        document.getElementById('resizer').addEventListener('mousedown', startResize);
+        document.getElementById('resizer').addEventListener('touchstart', startResize);
+
+        function startResize(e) {
+            isResizing = true;
+            startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+            startMapHeight = document.getElementById('map-section').offsetHeight;
+            
+            document.addEventListener('mousemove', resize);
+            document.addEventListener('touchmove', resize);
+            document.addEventListener('mouseup', stopResize);
+            document.addEventListener('touchend', stopResize);
+        }
+
+        function resize(e) {
+            if (!isResizing) return;
+            
+            const currentY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+            const diff = currentY - startY;
+            const newHeight = startMapHeight + diff;
+            const minHeight = window.innerHeight * 0.25;
+            const maxHeight = window.innerHeight * 0.7;
+            
+            if (newHeight > minHeight && newHeight < maxHeight) {
+                document.getElementById('map-section').style.flex = 'none';
+                document.getElementById('map-section').style.height = newHeight + 'px';
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            document.removeEventListener('mousemove', resize);
+            document.removeEventListener('touchmove', resize);
+            document.removeEventListener('mouseup', stopResize);
+            document.removeEventListener('touchend', stopResize);
+        }
+
+        // PWA Install
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'block';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                document.getElementById('installBtn').style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            setTimeout(() => {
+                Notification.requestPermission();
+            }, 5000);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            initMap();
+            displayPOI(0);
+            
+            // Hide loading after map is ready
+            setTimeout(() => {
+                const loading = document.querySelector('.loading');
+                if (loading) loading.remove();
+            }, 1000);
+        });
+
+        // Service Worker registration for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(() => {
+                    console.log('Service worker registration optional');
+                });
+            });
+        }
+    </script>
+</body>
+</html>
